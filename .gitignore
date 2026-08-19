@@ -1,0 +1,15 @@
+node_modules/
+coverage/
+*.mp4
+*.webm
+*.timeline.txt
+*.takes.jsonl
+**/.profile/
+examples/shop/shop.*
+dist/
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12

@@ -1,0 +1,102 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npx tsc --noEmit
+      - run: npm test
+
+  # The only thing that proves the published surface works: pack the package the
+  # way npm would, install it into a project that has never seen this repo, and
+  # import it by name. The example imports by relative path, so nothing else
+  # exercises the package surface.
+  consume:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm pack --pack-destination /tmp
+      - name: Import it by name from a clean project
+        run: |
+          mkdir -p /tmp/consumer && cd /tmp/consumer
+          npm init -y >/dev/null
+          npm install /tmp/walkthrough-recorder-*.tgz
+          cat > check.js <<'JS'
+          const { recordTake, runWalkthrough, reportRun } = require('walkthrough-recorder');
+          for (const [name, value] of Object.entries({ recordTake, runWalkthrough, reportRun }))
+            if (typeof value !== 'function') throw new Error(`${name} is ${typeof value}`);
+          console.log('resolved walkthrough-recorder by name');
+          JS
+          node check.js
+      - name: Type-check a consumer that imports it by name
+        run: |
+          cd /tmp/consumer
+          # @types/node too, because playwright's own .d.ts needs it. Any real
+          # consumer has it; without it the failures are all playwright's and
+          # none are ours, which reads as our package being broken.
+          npm install --no-save typescript@5 @types/node
+          # The README's own quickstart, not a stand-in. The front page is what
+          # a consumer copies, so it is the thing worth compiling.
+          node "$GITHUB_WORKSPACE/scripts/readme-quickstart.mjs" \
+            "$GITHUB_WORKSPACE/README.md" use.ts
+          npx tsc --noEmit --strict --moduleResolution node16 --module node16 use.ts
+
+  example:
+    # The example is the real proof: it drives an app the library has never
+    # seen, records it, and grades the result. If this passes, the library
+    # works for someone who is not the author.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      # ffmpeg and ffprobe, which the recorder shells out to in order to
+      # measure the frame and produce the mp4. `--with-deps` below installs
+      # chromium's shared libraries and nothing else.
+      #
+      # Guarded, because the runner image may already carry ffmpeg and an
+      # unconditional install hung for over half an hour on the first run.
+      # Noninteractive, because that is what a hanging apt on a runner usually
+      # is: needrestart asking which services to restart, with nobody to answer.
+      - name: Ensure ffmpeg and ffprobe
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          if ffmpeg -version >/dev/null 2>&1 && ffprobe -version >/dev/null 2>&1; then
+            echo "already installed: $(ffmpeg -version | head -1)"
+            exit 0
+          fi
+          sudo -E apt-get update
+          sudo -E apt-get install -y --no-install-recommends ffmpeg
+      # Cached, because the browser is a 95MB download and the key changes only
+      # when the pinned playwright version does.
+      - id: playwright-version
+        run: echo "value=$(node -p "require('playwright/package.json').version")" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright-version.outputs.value }}
+      # --with-deps every time regardless: the cache holds the browser, not the
+      # system libraries it links against, and those live outside the cached path.
+      - run: npx playwright install --with-deps chromium
+      - run: xvfb-run --auto-servernum npm run example:shop

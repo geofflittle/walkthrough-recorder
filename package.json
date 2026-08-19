@@ -1,0 +1,38 @@
+{
+  "name": "walkthrough-recorder",
+  "version": "0.1.0",
+  "description": "Record a browser app walking through itself, as a video that is checked rather than watched",
+  "license": "MIT",
+  "type": "commonjs",
+  "main": "./dist/index.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "example:shop": "tsx examples/shop/record.ts",
+    "prepack": "npm run build",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage.enabled --coverage.include='src/*.ts' --coverage.exclude='src/*.test.ts'",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "playwright": "^1.62.1"
+  },
+  "devDependencies": {
+    "@types/node": "^26.2.0",
+    "@vitest/coverage-v8": "^3.0.0",
+    "jsdom": "^26.0.0",
+    "tsx": "^4.21.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  },
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ]
+}
