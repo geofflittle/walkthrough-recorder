@@ -9,6 +9,7 @@
     "build": "tsc -p tsconfig.build.json",
     "example:shop": "tsx examples/shop/record.ts",
     "prepack": "npm run build",
+    "prepare": "npm run build",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage.enabled --coverage.include='src/*.ts' --coverage.exclude='src/*.test.ts'",
     "type-check": "tsc --noEmit"

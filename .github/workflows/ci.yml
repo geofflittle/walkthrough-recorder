@@ -37,6 +37,17 @@ jobs:
           mkdir -p /tmp/consumer && cd /tmp/consumer
           npm init -y >/dev/null
           npm install /tmp/walkthrough-recorder-*.tgz
+          # And the OTHER way a consumer installs this. npm runs `prepare` for
+          # a git dependency and `prepack` only for a tarball, so a package
+          # with just `prepack` installs from git with no dist at all.
+          mkdir -p /tmp/git-consumer && cd /tmp/git-consumer
+          npm init -y >/dev/null
+          npm install "git+file://$GITHUB_WORKSPACE"
+          test -f node_modules/walkthrough-recorder/dist/index.js
+          test -f node_modules/walkthrough-recorder/dist/index.d.ts
+          node -e "const m=require('walkthrough-recorder'); if (typeof m.recordTake!=='function') throw new Error('git install is unusable')"
+          echo 'git install resolved and built'
+          cd /tmp/consumer
           cat > check.js <<'JS'
           const { recordTake, runWalkthrough, reportRun } = require('walkthrough-recorder');
           for (const [name, value] of Object.entries({ recordTake, runWalkthrough, reportRun }))
