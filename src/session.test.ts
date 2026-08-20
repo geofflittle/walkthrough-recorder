@@ -431,3 +431,45 @@ describe('what the session fake was asked to do', () => {
     expect(emitWorkerLog('anything')).toBe(false);
   });
 });
+
+describe('the raw recording is named after the finished one', () => {
+  it('derives the webm name from videoPath', async () => {
+    // RED. Both consumers were passing runName purely to keep these two names
+    // aligned, which is a fact recordTake already holds. Without this, a take
+    // directory reads take.webm beside out.mp4, and the one file named
+    // differently is the one nobody meant to name at all.
+    const { ledger } = await run({
+      recordVideoDir: '/tmp',
+      videoPath: '/tmp/out.mp4',
+    });
+
+    expect(
+      (ledger().argsOf('screencast.start')?.[0] as { path: string }).path,
+    ).toBe('/tmp/out.webm');
+  });
+
+  it('still names it take.webm when no finished file was asked for', async () => {
+    // A run that records frames but produces no mp4 has nothing to derive
+    // from, so the default has to stand on its own.
+    const { ledger } = await run({
+      recordVideoDir: '/tmp',
+      videoPath: undefined,
+    });
+
+    expect(
+      (ledger().argsOf('screencast.start')?.[0] as { path: string }).path,
+    ).toBe('/tmp/take.webm');
+  });
+
+  it('lets a caller name it themselves', async () => {
+    const { ledger } = await run({
+      recordVideoDir: '/tmp',
+      videoPath: '/tmp/out.mp4',
+      runName: 'chosen',
+    });
+
+    expect(
+      (ledger().argsOf('screencast.start')?.[0] as { path: string }).path,
+    ).toBe('/tmp/chosen.webm');
+  });
+});

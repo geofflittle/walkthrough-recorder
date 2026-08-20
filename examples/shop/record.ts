@@ -78,7 +78,6 @@ const main = async () => {
     // anyone would actually open.
     recordVideoDir: here,
     videoPath: `${here}/shop.mp4`,
-    runName: 'shop',
   });
 
   console.log(`ended on:  ${result.terminalState}`);

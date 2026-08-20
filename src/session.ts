@@ -76,7 +76,14 @@ export const recordTake = async <Ref extends string>({
       )}`,
     );
 
-  const driven = await recordWalkthrough(driving);
+  // Named after the finished file, because a caller who says where the mp4
+  // goes has already said what this take is called. Both consumers were
+  // passing runName for exactly this and nothing else, which made it a fact
+  // stated twice rather than a decision anyone wanted to make.
+  const driven = await recordWalkthrough({
+    runName: videoPath?.replace(/^.*\//, '').replace(/\.mp4$/, ''),
+    ...driving,
+  });
 
   // Nothing to grade without a recording. A headless run is a
   // legitimate use of the driver, so this returns rather than complaining, and
