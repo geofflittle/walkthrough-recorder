@@ -28,14 +28,19 @@ import type { Shell } from './shell';
  * Both halves stay exported. Recording without grading is reasonable, and so is
  * grading a take that was recorded elsewhere.
  */
-export type TakeOptions<Ref extends string> = RecordOptions<Ref> & {
+export type TakeOptions<Ref extends string> = Omit<
+  RecordOptions<Ref>,
+  'recordVideoDir' | 'runName'
+> & {
   /**
-   * Where the finished mp4 goes. The transcript sits beside it.
+   * Where the finished mp4 goes, and the ONLY thing that decides the video.
    *
-   * OPTIONAL, and its absence is how an app says it wants no recording. Both
-   * this and `recordVideoDir` have to be present for a take to be graded, so
-   * supplying one and omitting the other produces a run with no grade, which
-   * the report then fails rather than passing silently.
+   * The transcript, the timings and the browser's raw webm all land beside it,
+   * named after it. Absence is how an app says it wants no recording at all.
+   *
+   * `recordVideoDir` used to be stated alongside this, and every consumer
+   * passed `dirname(videoPath)`, so the two could disagree and a take that
+   * named one but not the other was silently never graded.
    */
   videoPath?: string;
   /** How long a previous run's browser profile is kept. */
@@ -80,16 +85,19 @@ export const recordTake = async <Ref extends string>({
   // goes has already said what this take is called. Both consumers were
   // passing runName for exactly this and nothing else, which made it a fact
   // stated twice rather than a decision anyone wanted to make.
+  // Both derived from the one path the caller gave, so nothing downstream can
+  // be told a directory that disagrees with the file.
   const driven = await recordWalkthrough({
-    runName: videoPath?.replace(/^.*\//, '').replace(/\.mp4$/, ''),
     ...driving,
+    recordVideoDir: videoPath?.replace(/\/[^/]*$/, ''),
+    runName: videoPath?.replace(/^.*\//, '').replace(/\.mp4$/, ''),
   });
 
   // Nothing to grade without a recording. A headless run is a
   // legitimate use of the driver, so this returns rather than complaining, and
   // it returns NO grade. The absence is the whole signal: an empty check list
   // would be indistinguishable from a take that passed everything.
-  if (!videoPath || !driving.recordVideoDir) return driven;
+  if (!videoPath) return driven;
 
   const finished = await finishTake({
     // Narrowed by the two guards above: both videoPath and the recording exist.

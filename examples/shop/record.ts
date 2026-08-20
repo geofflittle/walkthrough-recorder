@@ -76,7 +76,6 @@ const main = async () => {
     // Where the raw recording is written, and where the finished mp4 goes.
     // recordTake grades the second one, so the checks below describe the file
     // anyone would actually open.
-    recordVideoDir: here,
     videoPath: `${here}/shop.mp4`,
   });
 

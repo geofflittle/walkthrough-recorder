@@ -162,18 +162,16 @@ const run = async (overrides: Record<string, unknown> = {}) => {
 
 describe('a take that was never graded says so', () => {
   it('reports that it graded nothing, rather than that nothing failed', async () => {
-    // RED. recordVideoDir is OPTIONAL and videoPath is REQUIRED, so a consumer
-    // who supplies the required field and omits the optional one gets no video,
-    // no transcript, no checks, an empty failedChecks and exit code 0. That
-    // silently inverts the library's headline promise, that a take which looks
-    // wrong fails the command instead of waiting for someone to notice.
-    const { result } = await run();
+    // An app that asked for no video has nothing to grade, and says so by
+    // returning no grade rather than an empty check list, which would read as
+    // "everything passed".
+    const { result } = await run({ videoPath: undefined });
 
     expect(result.grade).toBeUndefined();
   });
 
   it('says it graded a take when it actually did', async () => {
-    const { result } = await run({ recordVideoDir: '/tmp' });
+    const { result } = await run();
 
     expect(result.grade).toBeDefined();
   });
@@ -270,7 +268,7 @@ describe('recordTake', () => {
   it('skips grading entirely when no video was asked for', async () => {
     // A headless run is a legitimate use of the driver, so this
     // returns the outcome rather than complaining about a missing file.
-    const { result, commands } = await run();
+    const { result, commands } = await run({ videoPath: undefined });
 
     expect(result.grade?.failedChecks ?? []).toEqual([]);
     expect(result.terminalState).toBe('done');
@@ -438,38 +436,39 @@ describe('the raw recording is named after the finished one', () => {
     // aligned, which is a fact recordTake already holds. Without this, a take
     // directory reads take.webm beside out.mp4, and the one file named
     // differently is the one nobody meant to name at all.
-    const { ledger } = await run({
-      recordVideoDir: '/tmp',
-      videoPath: '/tmp/out.mp4',
-    });
+    const { ledger } = await run({ videoPath: '/tmp/out.mp4' });
 
     expect(
       (ledger().argsOf('screencast.start')?.[0] as { path: string }).path,
     ).toBe('/tmp/out.webm');
   });
+});
 
-  it('still names it take.webm when no finished file was asked for', async () => {
-    // A run that records frames but produces no mp4 has nothing to derive
-    // from, so the default has to stand on its own.
-    const { ledger } = await run({
-      recordVideoDir: '/tmp',
-      videoPath: undefined,
+describe('one path decides everything about the video', () => {
+  it('records beside the finished file, with no directory named twice', async () => {
+    // RED. Every consumer passed dirname(videoPath) and nothing else, so the
+    // directory was a second way to say what videoPath already said. Two
+    // fields that must agree is a defect generator: supply one and omit the
+    // other and the take is silently never graded.
+    const { ledger, result } = await run({
+      recordVideoDir: undefined,
+      videoPath: '/tmp/take.mp4',
     });
 
     expect(
       (ledger().argsOf('screencast.start')?.[0] as { path: string }).path,
     ).toBe('/tmp/take.webm');
+    expect(result.grade).toBeDefined();
   });
 
-  it('lets a caller name it themselves', async () => {
+  it('records nothing when no finished file was asked for', async () => {
+    // The other half. Absence of videoPath is how an app says it wants no
+    // video, and that has to remain the ONLY way to say it.
     const { ledger } = await run({
-      recordVideoDir: '/tmp',
-      videoPath: '/tmp/out.mp4',
-      runName: 'chosen',
+      recordVideoDir: undefined,
+      videoPath: undefined,
     });
 
-    expect(
-      (ledger().argsOf('screencast.start')?.[0] as { path: string }).path,
-    ).toBe('/tmp/chosen.webm');
+    expect(ledger().did('screencast.start')).toBe(false);
   });
 });

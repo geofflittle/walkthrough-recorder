@@ -49,7 +49,6 @@ const result = await recordTake({
     mustLearn: [{ ref: 'orderNumber', whyItMatters: 'it is the only receipt' }],
   },
   profileDir: './.profile',
-  recordVideoDir: '.',
   videoPath: './shop.mp4',
 });
 
