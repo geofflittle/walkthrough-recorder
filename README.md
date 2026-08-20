@@ -142,6 +142,13 @@ the page reported the presses the script asked for
 - `contactSheets` tiles video frames into labelled grids.
 - `appendTake` and `compareTakes` read and write `.takes.jsonl`.
 
+Two commands wrap the last two, for reading a take back after it looks wrong:
+
+```
+walkthrough-sheets take.mp4 16 18 20   # tile 16s to 18s at 20fps
+walkthrough-takes take.mp4             # this take against the last
+```
+
 The library writes files and never removes them.
 
 ## Requirements

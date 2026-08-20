@@ -47,6 +47,14 @@ describe('the published package', () => {
     expect((manifest.scripts as Record<string, string>)?.build).toBeDefined();
   });
 
+  it('points every binary at a file the build emits', () => {
+    // A bin entry naming a missing file installs a command that fails on the
+    // first run, and nothing else here would notice: the entry is only read
+    // by npm, at install time, in someone else's project.
+    for (const target of Object.values(manifest.bin as Record<string, string>))
+      expect(existsSync(`${ROOT}/${target}`)).toBe(true);
+  });
+
   it('builds an entry point that actually exists', () => {
     execFileSync('npm', ['run', 'build'], { cwd: ROOT, stdio: 'pipe' });
 

@@ -35,5 +35,9 @@
   },
   "files": [
     "dist"
-  ]
+  ],
+  "bin": {
+    "walkthrough-sheets": "./dist/bin/sheets.js",
+    "walkthrough-takes": "./dist/bin/takes.js"
+  }
 }
