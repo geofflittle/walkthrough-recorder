@@ -48,8 +48,9 @@ jobs:
           node -e "const m=require('walkthrough-recorder'); if (typeof m.recordTake!=='function') throw new Error('git install is unusable')"
           echo 'git install resolved and built'
           # The binaries, which only exist once npm has linked them.
-          ./node_modules/.bin/walkthrough-sheets | grep -q usage
-          ./node_modules/.bin/walkthrough-takes | grep -q usage
+          # 2>&1 because usage belongs on stderr, which is where they print it.
+          ./node_modules/.bin/walkthrough-sheets 2>&1 | grep -q usage
+          ./node_modules/.bin/walkthrough-takes 2>&1 | grep -q usage
           echo 'binaries installed and runnable'
           cd /tmp/consumer
           cat > check.js <<'JS'
